@@ -301,12 +301,29 @@ export default {
             })
             tracks.push(track)
           })
-          console.log(JSON.stringify(tracks))
-          // insert mode
-          // replace mode
-          // sx,syから指定位置以降に置換/挿入する
-          // sxは変えず、次のsy以降に続けて置換/挿入していく
-          // tracksの行数を超える分のデータは破棄する
+          for (let y = 0; y < tracks.length; y++) {
+            for (let x = 0; x < tracks[y].length; x++) {
+              const targety = this.cursor['sy'] + y
+              const targetx = this.cursor['sx'] + x
+              if (targety > this.tracks.length - 1) {
+                continue
+              }
+              this.tracks[targety].splice(targetx, this.insert ? 0 : 1, tracks[y][x])
+            }
+          }
+          let longest = 0
+          for (let i = 0; i < this.tracks.length; i++) {
+            if (longest < this.tracks[i].length) {
+              longest = this.tracks[i].length
+            }
+          }
+          this.length = longest
+          for (let i = 0; i < this.tracks.length; i++) {
+            if (this.tracks[i].length < this.length) {
+              const count = this.length - this.tracks[i].length
+              this.tracks[i].push(...Array(count).fill({'key': '-', 'octave': 4}))
+            }
+          }
           break
         }
         case 'Escape': {
