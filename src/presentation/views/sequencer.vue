@@ -1,27 +1,27 @@
 <template>
     <div>
         <div class="track">
-            <div class="key octave-1" v-for="key in scale" @mousedown="keystroke(key, 1)" @mouseup="keymute()">
+            <div class="key octave-1" v-for="key in scale" @mousedown="playSound(key, 1)" @mouseup="stopSound()">
                 {{ key }}
             </div>
         </div>
         <div class="track">
-            <div class="key octave-2" v-for="key in scale" @mousedown="keystroke(key, 2)" @mouseup="keymute()">
+            <div class="key octave-2" v-for="key in scale" @mousedown="playSound(key, 2)" @mouseup="stopSound()">
                 {{ key }}
             </div>
         </div>
         <div class="track">
-            <div class="key octave-3" v-for="key in scale" @mousedown="keystroke(key, 3)" @mouseup="keymute()">
+            <div class="key octave-3" v-for="key in scale" @mousedown="playSound(key, 3)" @mouseup="stopSound()">
                 {{ key }}
             </div>
         </div>
         <div class="track">
-            <div class="key octave-4" v-for="key in scale" @mousedown="keystroke(key, 4)" @mouseup="keymute()">
+            <div class="key octave-4" v-for="key in scale" @mousedown="playSound(key, 4)" @mouseup="stopSound()">
                 {{ key }}
             </div>
         </div>
         <div class="track">
-            <div class="key octave-5" v-for="key in scale" @mousedown="keystroke(key, 5)" @mouseup="keymute()">
+            <div class="key octave-5" v-for="key in scale" @mousedown="playSound(key, 5)" @mouseup="stopSound()">
                 {{ key }}
             </div>
         </div>
@@ -42,7 +42,7 @@
             </div>
             <div class="sequence">
                 <div class="track" v-for="(track, y) in tracks">
-                    <div :class="['cell', 'octave-' + note.octave]" :style="selected(x, y)" v-for="(note, x) in track" @mousedown="keystroke(note.key, note.octave, x, y)" @mouseup="keymute()">
+                    <div :class="['cell', 'octave-' + note.octave]" :style="selected(x, y)" v-for="(note, x) in track" @mousedown="mouseDown(x, y, note.key, note.octave)" @mouseover="mouseOver(x, y, note.key, note.octave)" @mouseup="mouseUp(x, y, note.key, note.octave)">
                         {{ note.key }}
                     </div>
                 </div>
@@ -91,6 +91,7 @@ export default {
       startedAt: 0,
       insert: false,
       counter: 0,
+      clickhold: false,
       playing: false,
       length: 1,
       scale: ['c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'a', 'A', 'b'],
@@ -116,9 +117,27 @@ export default {
     window.addEventListener('keydown', event => {
       this.input(event)
     })
+    window.addEventListener('mouseup', event => {
+      this.clickhold = false
+    })
   },
   methods: {
-    keystroke (key, octave, x = null, y = null) {
+    mouseDown (x, y, key, octave) {
+      this.clickhold = true
+      this.playSound(key, octave)
+      this.rangeStart(x, y)
+    },
+    mouseOver (x, y, key, octave) {
+      if (!this.clickhold) {
+        return
+      }
+      this.rangeOver(x, y)
+    },
+    mouseUp (x, y, key, octave) {
+      this.clickhold = false
+      this.stopSound()
+    },
+    playSound (key, octave) {
       const offsets = {
         'c': 0,
         'C': 1,
@@ -132,12 +151,6 @@ export default {
         'a': 9,
         'A': 10,
         'b': 11
-      }
-      if (x !== null && y !== null) {
-        Vue.set(this.cursor, 'sx', x)
-        Vue.set(this.cursor, 'ex', x)
-        Vue.set(this.cursor, 'sy', y)
-        Vue.set(this.cursor, 'ey', y)
       }
       if (!(key in offsets)) {
         return
@@ -153,11 +166,25 @@ export default {
       oscillator.frequency.value = frequency * Math.pow(2, octaveDiff)
       oscillator.start(context.currentTime)
     },
-    keymute () {
+    stopSound () {
       if (oscillator !== null) {
         oscillator.stop(0)
         oscillator = null
       }
+    },
+    rangeStart (x, y) {
+      Vue.set(this.cursor, 'range', true)
+      Vue.set(this.cursor, 'sx', x)
+      Vue.set(this.cursor, 'ex', x)
+      Vue.set(this.cursor, 'sy', y)
+      Vue.set(this.cursor, 'ey', y)
+    },
+    rangeOver (x, y) {
+      if (!this.cursor['range']) {
+        return
+      }
+      Vue.set(this.cursor, 'ex', x)
+      Vue.set(this.cursor, 'ey', y)
     },
     addTrack () {
       this.tracks.push(Array(this.length).fill({'key': '-', 'octave': 5}))
@@ -369,9 +396,17 @@ export default {
           break
         }
         case '1': case '2': case '3': case '4': case '5': {
-          const x = this.cursor['sx']
-          const y = this.cursor['sy']
-          Vue.set(this.tracks[y][x], 'octave', input)
+          const originy = Math.min(this.cursor['sy'], this.cursor['ey'])
+          const originx = Math.min(this.cursor['sx'], this.cursor['ex'])
+          const lengthy = Math.abs(this.cursor['ey'] - this.cursor['sy']) + 1
+          const lengthx = Math.abs(this.cursor['ex'] - this.cursor['sx']) + 1
+          for (let y = 0; y < lengthy; y++) {
+            for (let x = 0; x < lengthx; x++) {
+              const targety = originy + y
+              const targetx = originx + x
+              Vue.set(this.tracks[targety][targetx], 'octave', input)
+            }
+          }
           break
         }
         case 'c': case 'C':
