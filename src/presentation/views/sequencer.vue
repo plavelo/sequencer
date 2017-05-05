@@ -29,7 +29,14 @@
         <div id="workspace" class="workspace">
             <div class="sequence">
                 <div class="track">
-                    <div :id="'counter' + index" :class="{'cell': true, 'note': true, 'current': index === counter, 'beat': index % 4 === 0, 'bar': index % 16 === 0}" v-for="(note, index) in tracks[0]">
+                    <div :id="'label' + index" class="label" v-if="index % 16 === 0" v-for="(note, index) in tracks[0]">
+                        {{ index }}
+                    </div>
+                </div>
+            </div>
+            <div class="sequence">
+                <div class="track">
+                    <div :id="'counter' + index" :class="{'counter': true, 'current': index === counter, 'beat': index % 4 === 0, 'bar': index % 16 === 0}" v-for="(note, index) in tracks[0]">
                     </div>
                 </div>
             </div>
@@ -45,18 +52,23 @@
         <button @click="play()">play</button>
         <hr>
         <div>
-          <div>c,d,e,f,g,a,b: input key</div>
-          <div>h: move left</div>
-          <div>j: move down</div>
-          <div>k: move up</div>
-          <div>l: move right</div>
-          <div>space: play and stop</div>
+          <div>c,C,d,D,e,f,F,g,G,a,A,b: input key</div>
+          <div>1,2,3,4,5: change octave</div>
           <div>-: input macron</div>
           <div>/: input rest</div>
+          <div>h: move left (H: WIP: move one beat left)</div>
+          <div>j: move down</div>
+          <div>k: move up</div>
+          <div>l: move right (L: WIP: move one beat right)</div>
+          <div>^: WIP: move to the beginning</div>
+          <div>$: WIP: move to the end</div>
+          <div>space: play and stop</div>
           <div>v: range selection</div>
           <div>esc: cancel selection</div>
-          <div>y: WIP: copy selection</div>
+          <div>y: copy selection</div>
           <div>p: WIP: paste selection</div>
+          <div>i: insert mode (I: replace mode)</div>
+          <div>u: WIP: undo (U: WIP: redo)</div>
         </div>
     </div>
 </template>
@@ -77,6 +89,7 @@ export default {
       tempo: 100,
       cursor: {'sx': 0, 'sy': 0, 'ex': 0, 'ey': 0, 'range': false},
       startedAt: 0,
+      insert: false,
       counter: 0,
       playing: false,
       length: 1,
@@ -94,6 +107,11 @@ export default {
     const tracks = storage.getItem('tracks')
     this.tracks = JSON.parse(tracks)
     this.length = this.tracks[0].length
+
+    // remove over columns
+    for (let i = 0; i < this.tracks.length; i++) {
+      this.tracks[i].splice(this.length)
+    }
 
     window.addEventListener('keydown', event => {
       this.input(event)
@@ -218,10 +236,11 @@ export default {
           bottom = (y === this.cursor['sy'])
         }
       }
-      return (top ? 'border-top: 1px solid #FF0000;' : '') +
-      (left ? 'border-left: 1px solid #FF0000;' : '') +
-      (right ? 'border-right: 1px solid #FF0000;' : '') +
-      (bottom ? 'border-bottom: 1px solid #FF0000;' : '')
+      const color = this.insert ? '#3F51B5' : '#E91E63'
+      return (top ? `border-top: 1px solid ${color};` : '') +
+      (left ? `border-left: 1px solid ${color};` : '') +
+      (right ? `border-right: 1px solid ${color};` : '') +
+      (bottom ? `border-bottom: 1px solid ${color};` : '')
     },
     input (e) {
       const input = e.key
@@ -233,6 +252,10 @@ export default {
             this.play()
           }
           this.playing = !this.playing
+          break
+        }
+        case 'i': case 'I': {
+          this.insert = (input === 'i')
           break
         }
         case 'v': {
@@ -247,7 +270,13 @@ export default {
           const xto = Math.max(this.cursor['sx'], this.cursor['ex'])
           for (let y = yfrom; y <= yto; y++) {
             for (let x = xfrom; x <= xto; x++) {
-              buffer += this.tracks[y][x]['key']
+              const key = this.tracks[y][x]['key']
+              const octave = this.tracks[y][x]['octave']
+              if (['c', 'C', 'd', 'D', 'e', 'f', 'F', 'g', 'G', 'a', 'A', 'b'].indexOf(key) >= 0) {
+                buffer += (key + octave)
+              } else {
+                buffer += (key + ' ')
+              }
             }
             buffer += '\n'
           }
@@ -256,6 +285,28 @@ export default {
           Vue.set(this.cursor, 'ex', this.cursor['sx'])
           Vue.set(this.cursor, 'ey', this.cursor['sy'])
           console.log(this.clipboard)
+          break
+        }
+        case 'p': {
+          const tracks = []
+          const lines = this.clipboard.trim().split('\n')
+          lines.forEach(line => {
+            const track = line.split(/(.{2})/).filter(x => x !== '').map(token => {
+              const value = token.trim()
+              if (/^[c,C,d,D,e,f,F,g,G,a,A,b]/.test(value)) {
+                const [key, octave] = value.split('')
+                return {'key': key, 'octave': octave}
+              }
+              return {'key': value, 'octave': 4}
+            })
+            tracks.push(track)
+          })
+          console.log(JSON.stringify(tracks))
+          // insert mode
+          // replace mode
+          // sx,syから指定位置以降に置換/挿入する
+          // sxは変えず、次のsy以降に続けて置換/挿入していく
+          // tracksの行数を超える分のデータは破棄する
           break
         }
         case 'Escape': {
@@ -315,12 +366,22 @@ export default {
         case 'b':
         case '-':
         case '/':
-          this.tracks[this.cursor['sy']].splice(this.cursor['sx'], 1, {'key': input, 'octave': 4})
-          if (this.cursor['sx'] === this.length - 1) {
+          if (this.insert) {
+            this.tracks[this.cursor['sy']].splice(this.cursor['sx'], 0, {'key': input, 'octave': 4})
             for (let y = 0; y < this.tracks.length; y++) {
-              this.tracks[y].push({'key': '-', 'octave': 4})
+              if (y !== this.cursor['sy']) {
+                this.tracks[y].push({'key': '-', 'octave': 4})
+              }
             }
             this.length = this.length += 1
+          } else {
+            this.tracks[this.cursor['sy']].splice(this.cursor['sx'], 1, {'key': input, 'octave': 4})
+            if (this.cursor['sx'] === this.length - 1) {
+              for (let y = 0; y < this.tracks.length; y++) {
+                this.tracks[y].push({'key': '-', 'octave': 4})
+              }
+              this.length = this.length += 1
+            }
           }
           if (this.cursor['sx'] < this.length) {
             Vue.set(this.cursor, 'sx', this.cursor['sx'] + 1)
@@ -356,7 +417,6 @@ export default {
     line-height: 18px;
     text-align: center;
     font-size: 12px;
-    border-collapse: collapse;
 }
 .key {
     width: 36px;
@@ -393,9 +453,22 @@ export default {
 .selected {
     border: 1px solid #FF0000;
 }
-.note {
+.counter {
+    width: 12px;
+    min-width: 12px;
+    height: 14px;
+    line-height: 14px;
     background-color: #FFFFFF;
     border: 1px solid #FFFFFF;
+}
+.label {
+    width: 222px;
+    min-width: 222px;
+    height: 10px;
+    line-height: 10px;
+    padding-left: 2px;
+    font-size: 8px;
+    color: #9E9E9E;
 }
 .beat {
     background-color: #FFFFFF;
