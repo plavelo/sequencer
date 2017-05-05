@@ -36,7 +36,7 @@
             </div>
             <div class="sequence">
                 <div class="track">
-                    <div :id="'counter' + index" :class="{'counter': true, 'current': index === counter, 'beat': index % 4 === 0, 'bar': index % 16 === 0}" v-for="(note, index) in tracks[0]">
+                    <div :id="'counter' + index" :class="{'counter': true, 'current': index === counter, 'beat': index % 4 === 0, 'bar': index % 16 === 0}" v-for="(note, index) in tracks[0]" @click="move(index)">
                     </div>
                 </div>
             </div>
@@ -50,6 +50,7 @@
         </div>
         <button @click="addTrack()">add track</button>
         <button @click="play()">play</button>
+        <button @click="back()">back</button>
         <hr>
         <div>
           <div>c,C,d,D,e,f,F,g,G,a,A,b: input key</div>
@@ -194,13 +195,16 @@ export default {
         const sequence = new Sequence(context, this.tempo)
         let currentDuration = 0
         let currentNote = null
-        for (let i = 0; i < track.length; i++) {
+        for (let i = this.counter; i < track.length; i++) {
+          if (currentNote === null) {
+            currentNote = track[i]
+            currentDuration = 0.125
+            continue
+          }
           if (track[i]['key'] === '-') {
             currentDuration += 0.125
           } else {
-            if (currentNote !== null) {
-              sequence.push(new Note(currentNote['key'], currentNote['octave'], currentDuration))
-            }
+            sequence.push(new Note(currentNote['key'], currentNote['octave'], currentDuration))
             currentNote = track[i]
             currentDuration = 0.125
           }
@@ -213,14 +217,17 @@ export default {
       sequences.forEach(sequence => {
         sequence.play()
       })
-      const workspace = document.getElementById('workspace')
-      workspace.scrollLeft = 0
-
       this.startedAt = context.currentTime
+      const workspace = document.getElementById('workspace')
+      const lastCounter = this.counter
       const duration = 60 / this.tempo * 0.125
       let lastScrolledCount = 0
       this.intervalId = setInterval(() => {
-        this.counter = Math.floor((context.currentTime - this.startedAt) / duration)
+        this.counter = lastCounter + Math.floor((context.currentTime - this.startedAt) / duration)
+        if (this.counter >= this.length) {
+          this.counter = this.length - 1
+        }
+        // scroll
         if (this.counter % 64 === 0 && this.counter !== lastScrolledCount) {
           const target = document.getElementById(`counter${this.counter}`)
           if (target === null) {
@@ -237,6 +244,17 @@ export default {
       })
       sequences = []
       clearInterval(this.intervalId)
+      // FIXME: for next play, too dirty
+      this.counter += 1
+    },
+    move (counter) {
+      this.stop()
+      this.counter = counter
+    },
+    back () {
+      this.stop()
+      const workspace = document.getElementById('workspace')
+      workspace.scrollLeft = 0
       this.counter = 0
     },
     selected (x, y) {
