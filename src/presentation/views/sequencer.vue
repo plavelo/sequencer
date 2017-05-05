@@ -383,26 +383,48 @@ export default {
         case 'b':
         case '-':
         case '/':
-          if (this.insert) {
-            this.tracks[this.cursor['sy']].splice(this.cursor['sx'], 0, {'key': input, 'octave': 4})
-            for (let y = 0; y < this.tracks.length; y++) {
-              if (y !== this.cursor['sy']) {
-                this.tracks[y].push({'key': '-', 'octave': 4})
-              }
-            }
-            this.length = this.length += 1
-          } else {
-            this.tracks[this.cursor['sy']].splice(this.cursor['sx'], 1, {'key': input, 'octave': 4})
-            if (this.cursor['sx'] === this.length - 1) {
-              for (let y = 0; y < this.tracks.length; y++) {
-                this.tracks[y].push({'key': '-', 'octave': 4})
-              }
-              this.length = this.length += 1
+          const originy = Math.min(this.cursor['sy'], this.cursor['ey'])
+          const originx = Math.min(this.cursor['sx'], this.cursor['ex'])
+          const lengthy = Math.abs(this.cursor['ey'] - this.cursor['sy']) + 1
+          const lengthx = Math.abs(this.cursor['ex'] - this.cursor['sx']) + 1
+          for (let y = 0; y < lengthy; y++) {
+            for (let x = 0; x < lengthx; x++) {
+              const targety = originy + y
+              const targetx = originx + x
+              this.tracks[targety].splice(targetx, this.insert ? 0 : 1, {'key': input, 'octave': 4})
             }
           }
+
+          let longest = 0
+          for (let i = 0; i < this.tracks.length; i++) {
+            if (longest < this.tracks[i].length) {
+              longest = this.tracks[i].length
+            }
+          }
+          this.length = longest
+          for (let i = 0; i < this.tracks.length; i++) {
+            if (this.tracks[i].length < this.length) {
+              const count = this.length - this.tracks[i].length
+              this.tracks[i].push(...Array(count).fill({'key': '-', 'octave': 4}))
+            }
+          }
+
+          if (this.cursor['sx'] === this.length - 1) {
+            for (let y = 0; y < this.tracks.length; y++) {
+              this.tracks[y].push({'key': '-', 'octave': 4})
+            }
+            this.length = this.length += 1
+          }
+
           if (this.cursor['sx'] < this.length) {
-            Vue.set(this.cursor, 'sx', this.cursor['sx'] + 1)
-            Vue.set(this.cursor, 'ex', this.cursor['sx'])
+            if (this.cursor['range']) {
+              Vue.set(this.cursor, 'ey', this.cursor['sy'])
+              Vue.set(this.cursor, 'ex', this.cursor['sx'])
+              Vue.set(this.cursor, 'range', false)
+            } else {
+              Vue.set(this.cursor, 'sx', this.cursor['sx'] + 1)
+              Vue.set(this.cursor, 'ex', this.cursor['sx'])
+            }
           }
           break
       }
