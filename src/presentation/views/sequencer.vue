@@ -70,6 +70,8 @@
           <div>p: paste selection</div>
           <div>i: insert mode (I: replace mode)</div>
           <div>u: WIP: undo (U: WIP: redo)</div>
+          <div>[: increase an octave</div>
+          <div>]: decrease an octave</div>
         </div>
     </div>
 </template>
@@ -188,7 +190,7 @@ export default {
       Vue.set(this.cursor, 'ey', y)
     },
     addTrack () {
-      this.tracks.push(Array(this.length).fill({'key': '-', 'octave': 5}))
+      this.tracks.push(Array(this.length).fill({'key': '-', 'octave': 4}))
     },
     play () {
       this.tracks.forEach(track => {
@@ -420,7 +422,7 @@ export default {
           const tox = Math.max(this.cursor['sx'], this.cursor['ex'])
           for (let y = fromy; y <= toy; y++) {
             for (let x = fromx; x <= tox; x++) {
-              Vue.set(this.tracks[y][x], 'octave', input)
+              Vue.set(this.tracks[y][x], 'octave', Number(input))
             }
           }
           for (let y = fromy; y <= toy; y++) {
@@ -428,10 +430,40 @@ export default {
               if (this.tracks[y][x]['key'] !== '-') {
                 break
               }
-              Vue.set(this.tracks[y][x], 'octave', input)
+              Vue.set(this.tracks[y][x], 'octave', Number(input))
             }
             for (let x = fromx; x >= 0; x--) {
-              Vue.set(this.tracks[y][x], 'octave', input)
+              Vue.set(this.tracks[y][x], 'octave', Number(input))
+              if (this.tracks[y][x]['key'] !== '-') {
+                break
+              }
+            }
+          }
+          break
+        }
+        case '[': case ']': {
+          const fromy = Math.min(this.cursor['sy'], this.cursor['ey'])
+          const fromx = Math.min(this.cursor['sx'], this.cursor['ex'])
+          const toy = Math.max(this.cursor['sy'], this.cursor['ey'])
+          const tox = Math.max(this.cursor['sx'], this.cursor['ex'])
+          for (let y = fromy; y <= toy; y++) {
+            for (let x = fromx; x <= tox; x++) {
+              if (input === '[') {
+                Vue.set(this.tracks[y][x], 'octave', this.tracks[y][x]['octave'] < 5 ? this.tracks[y][x]['octave'] + 1 : 5)
+              } else {
+                Vue.set(this.tracks[y][x], 'octave', this.tracks[y][x]['octave'] > 1 ? this.tracks[y][x]['octave'] - 1 : 1)
+              }
+            }
+          }
+          for (let y = fromy; y <= toy; y++) {
+            for (let x = tox + 1; x < this.length; x++) {
+              if (this.tracks[y][x]['key'] !== '-') {
+                break
+              }
+              Vue.set(this.tracks[y][x], 'octave', this.tracks[y][tox]['octave'])
+            }
+            for (let x = fromx; x >= 0; x--) {
+              Vue.set(this.tracks[y][x], 'octave', this.tracks[y][fromx]['octave'])
               if (this.tracks[y][x]['key'] !== '-') {
                 break
               }
