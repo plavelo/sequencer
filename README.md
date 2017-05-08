@@ -1,4 +1,4 @@
-# flick
+# sequencer
 
 > A Vue.js project
 
