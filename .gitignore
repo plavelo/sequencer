@@ -8,3 +8,12 @@ yarn-error.log*
 test/unit/coverage
 test/e2e/reports
 selenium-debug.log
+
+# for configs
+src/config/*.js
+
+# for firebase
+firebase_credential.json
+
+# for vscode
+.vscode

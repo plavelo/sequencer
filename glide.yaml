@@ -1,4 +1,10 @@
-package: app
+package: github.com/plavelo/sequencer
 import:
 - package: github.com/labstack/echo
   version: ^2.2.0
+- package: google.golang.org/appengine
+  version: ^1.0.0
+  subpackages:
+  - datastore
+- package: github.com/eaglesakura/gaefire
+- package: github.com/mjibson/goon

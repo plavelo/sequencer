@@ -1,5 +1,8 @@
 <template>
     <div>
+        <div>
+            <button @click="signOut()">Sign out</button>
+        </div>
         <div class="track">
             <div class="key octave-1" v-for="key in scale" @mousedown="playSound(key, 1)" @mouseup="stopSound()">
                 {{ key }}
@@ -78,6 +81,7 @@
 
 <script>
 import Vue from 'vue'
+import * as Firebase from 'firebase'
 import Note from '@/domain/note'
 import Sequence from '@/domain/sequence'
 
@@ -125,6 +129,12 @@ export default {
     })
   },
   methods: {
+    signOut () {
+      Firebase.auth().signOut()
+      Vue.nextTick(() => {
+        this.$router.push({name: 'entrance'})
+      })
+    },
     mouseDown (x, y, key, octave) {
       this.clickhold = true
       this.playSound(key, octave)

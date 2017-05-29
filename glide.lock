@@ -1,8 +1,21 @@
-hash: fee67287eb82d71ce3608b74debe9677a5249e722398e55aa4e2f99386a2094b
-updated: 2017-05-08T14:51:39.604816407+09:00
+hash: 624cdb8d4e9a4b94d7b5be3a28c2254dc2a7b506d9f1fd6c0c167e146df03c38
+updated: 2017-05-24T18:43:19.175364163+09:00
 imports:
 - name: github.com/dgrijalva/jwt-go
-  version: 2268707a8f0843315e2004ee4f1d021dc08baedf
+  version: 6c8dedd55f8a2e41f605de6d5d66e51ed1f299fc
+- name: github.com/eaglesakura/gaefire
+  version: e4c9b6ce8d427ef80b7837384edc2288b3699f1d
+  subpackages:
+  - factory
+  - internal
+- name: github.com/eaglesakura/swagger-go-core
+  version: a922e88a80319b11a950d25335856118ca1adea0
+  subpackages:
+  - errors
+- name: github.com/golang/protobuf
+  version: 7a211bcf3bce0e3f1d74f9894916e6f116ae83b4
+  subpackages:
+  - proto
 - name: github.com/labstack/echo
   version: e08070379af60f5b9c0fb5bb2d1527ba9624fe43
   subpackages:
@@ -22,16 +35,37 @@ imports:
   version: ded68f7a9561c023e790de24279db7ebf473ea80
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+- name: github.com/mjibson/goon
+  version: 4704d2914e39207b9ea1f29065975a803e96b8ae
 - name: github.com/valyala/bytebufferpool
   version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
 - name: github.com/valyala/fasttemplate
   version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
 - name: golang.org/x/net
-  version: feeb485667d1fdabe727840fe00adc22431bc86e
+  version: 445979b94b42a1f13fdf26e8bf839a566e9796f9
   subpackages:
   - context
 - name: golang.org/x/sys
-  version: 9ccfe848b9db8435a24c424abbc07a921adf1df5
+  version: dbc2be9168a660ef302e04b6ff6406de6f967473
   subpackages:
   - unix
+- name: google.golang.org/appengine
+  version: 150dc57a1b433e64154302bdc40b6bb8aefa313a
+  subpackages:
+  - aetest
+  - datastore
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/memcache
+  - internal/modules
+  - internal/remote_api
+  - internal/urlfetch
+  - internal/user
+  - log
+  - memcache
+  - urlfetch
+  - user
 testImports: []

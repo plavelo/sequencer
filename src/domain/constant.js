@@ -1,0 +1,7 @@
+export const KEY_TOKEN = 'KEY_TOKEN'
+export const AUTH_STATE = {
+  UNINITIALIZED: 0,
+  UNAUTHENTICATED: 1,
+  UNREGISTERED: 2,
+  LOGGED_IN: 3
+}
